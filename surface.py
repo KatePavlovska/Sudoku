@@ -1,4 +1,5 @@
 import pygame
+import os
 import color as c
 
 
@@ -21,7 +22,25 @@ class Surface:
 
     @staticmethod
     def set_color():
-        return c.black
+        color = None
+        path = "settings.txt"
+        if os.path.isfile(path):
+            file = open(path, "r")
+            file_list = [line.strip() for line in file.readlines()]
+            design = file_list[2]
+            if design == "black":
+                color = c.black
+            if design == "dark blue":
+                color = c.dark_blue
+            if design == "dark green":
+                color = c.dark_green
+            if design == "dark red":
+                color = c.dark_red
+            if design == "dark gray":
+                color = c.dark_gray
+        else:
+            color = c.black
+        return color
 
     @staticmethod
     def mouse_on_button(button, width, height):
@@ -55,13 +74,14 @@ class Surface:
 
 
 class ButtonInterface:
-    def __init__(self, surface, image, x_start, y_start, text, action):
+    def __init__(self, surface, image, x_start, y_start, text, action, file_property=None):
         self.surface = surface
         self.image = image
         self.x_start = x_start
         self.y_start = y_start
         self.text = text
         self.action = action
+        self.file_property = file_property
         self.selected = False
 
     def add(self):

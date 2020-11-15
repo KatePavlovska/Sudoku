@@ -1,4 +1,4 @@
-import game
+import menu
 
 if __name__ == "__main__":
-    game.run()
+    menu.run()

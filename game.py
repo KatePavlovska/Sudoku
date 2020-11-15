@@ -1,10 +1,13 @@
 import pygame
 import sys
+import os
 import random
 import surface
 import time
 import color as c
+import menu
 import copy
+import pickle
 from abc import ABC, abstractmethod
 
 
@@ -19,10 +22,11 @@ class HintError(Exception):
 
 
 class Game(surface.Surface, Painter):
+
     def __init__(self):
         super().__init__()
-        self.__tables = Tables()
-        self.__cells_list = self.__set_cells()
+        self.tables = Tables()
+        self.cells_list = self.__set_cells()
         self.__buttons_list = self.__set_buttons()
         self.__cursor = None
 
@@ -69,7 +73,7 @@ class Game(surface.Surface, Painter):
                         box = 8
                     elif pos_1 < 9:
                         box = 9
-                digit = self.__tables.unsolved[index][row_index]
+                digit = self.tables.unsolved[index][row_index]
                 cell = Cell(width_start, width_stop, height_start, height_stop, digit, (pos_0, pos_1), box,
                             (False if digit != 0 else True))
                 cells_list.append(cell)
@@ -97,8 +101,9 @@ class Game(surface.Surface, Painter):
         check_button = surface.ButtonInterface(self.screen, button_image, 465, 205, "Check", self.check)
         clear_button = surface.ButtonInterface(self.screen, button_image, 465, 270, "Clear", self.clear)
         solve_button = surface.ButtonInterface(self.screen, button_image, 465, 335, "Solve", self.solve)
-        exit_game_button = surface.ButtonInterface(self.screen, button_image, 465, 400, "Quit", self.exit_game)
-        buttons_list = [hint_button, check_button, clear_button, solve_button, exit_game_button]
+        save_game_button = surface.ButtonInterface(self.screen, button_image, 465, 400, "Save Game", self.save_game)
+        exit_game_button = surface.ButtonInterface(self.screen, button_image, 465, 465, "Quit", self.exit_game)
+        buttons_list = [hint_button, check_button, clear_button, solve_button, save_game_button, exit_game_button]
         return buttons_list
 
     def __set_cursor(self, cell):
@@ -162,18 +167,17 @@ class Game(surface.Surface, Painter):
                 thin_line_x += 48
 
     def __draw_incorrect(self):
-        for cell in self.__cells_list:
+        for cell in self.cells_list:
             if cell.incorrect:
                 pygame.draw.rect(self.screen, c.red, (cell.x_start, cell.y_start, 48, 48))
 
     def __draw_digits(self):
         digit_font = pygame.font.Font(self.font_path, 30)
-        for cell in self.__cells_list:
+        for cell in self.cells_list:
             if cell.digit > 0:
                 self.add_text_on_screen(self.screen, f"{cell.digit}", digit_font,
                                         (c.blue if cell.editable else c.red if cell.hint else c.black),
                                         (cell.x_start+24, cell.y_start+24))
-
 
     @staticmethod
     def format_time(tm):
@@ -190,15 +194,15 @@ class Game(surface.Surface, Painter):
         return time_str
 
     def check_is_solved(self):
-        solved_cells = [cell for cell in self.__cells_list if cell.digit == self.__tables.solved[cell.pos[0]][cell.pos[1]]]
-        if len(solved_cells) == len(self.__cells_list):
+        solved_cells = [cell for cell in self.cells_list if cell.digit == self.tables.solved[cell.pos[0]][cell.pos[1]]]
+        if len(solved_cells) == len(self.cells_list):
             self.end = True
 
     def move_cursor(self):
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()
 
-        for cell in self.__cells_list:
+        for cell in self.cells_list:
             mouse_on_cell = cell.mouse_on_cell(cell, mouse)
             if mouse_on_cell:
                 if click[0] == 1:
@@ -206,11 +210,11 @@ class Game(surface.Surface, Painter):
 
     def hint(self):
         if self.hints > 0 and not self.end:
-            list_of_cells_for_hint = [cell for cell in self.__cells_list if (cell.editable and cell.digit == 0)]
+            list_of_cells_for_hint = [cell for cell in self.cells_list if (cell.editable and cell.digit == 0)]
             try:
                 if len(list_of_cells_for_hint) > 0:
                     selected_cell = random.choice(list_of_cells_for_hint)
-                    selected_cell.digit = self.__tables.solved[selected_cell.pos[0]][selected_cell.pos[1]]
+                    selected_cell.digit = self.tables.solved[selected_cell.pos[0]][selected_cell.pos[1]]
                     selected_cell.editable = False
                     selected_cell.hint = True
                     if selected_cell.incorrect:
@@ -224,28 +228,44 @@ class Game(surface.Surface, Painter):
             self.penalty_time += 15
 
     def check(self):
-        for cell in self.__cells_list:
-            if cell.digit > 0 and cell.digit != self.__tables.solved[cell.pos[0]][cell.pos[1]]:
+        for cell in self.cells_list:
+            if cell.digit > 0 and cell.digit != self.tables.solved[cell.pos[0]][cell.pos[1]]:
                 cell.incorrect = True
         self.penalty_time += 15
 
     def clear(self):
         if not self.end:
-            for cell in self.__cells_list:
+            for cell in self.cells_list:
                 if cell.editable and cell.digit > 0:
                     cell.digit = 0
                     cell.incorrect = False
 
     def solve(self):
-        for cell in self.__cells_list:
+        for cell in self.cells_list:
             if cell.editable:
-                cell.digit = self.__tables.solved[cell.pos[0]][cell.pos[1]]
+                cell.digit = self.tables.solved[cell.pos[0]][cell.pos[1]]
                 cell.incorrect = False
         self.is_solve_button_used = True
 
+    def save_game(self):
+        path = "game_save.txt"
+        file = open(path, "wb")
+        pickle.dump(self.hints, file)
+        pickle.dump(self.cells_list, file)
+        pickle.dump(self.tables.unsolved, file)
+        pickle.dump(self.tables.solved, file)
+        pickle.dump(self.game_time, file)
+        file.close()
+
     @staticmethod
     def exit_game():
-        sys.exit(0)
+        menu.run()
+
+    @staticmethod
+    def end_game():
+        pygame.display.update()
+        time.sleep(1)
+        menu.run()
 
     def handle_events(self):
         while True:
@@ -264,7 +284,7 @@ class Game(surface.Surface, Painter):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self.exit_game()
-                    for cell in self.__cells_list:
+                    for cell in self.cells_list:
                         cursor_on_cell = cell.cursor_on_cell(cell, self.__cursor)
                         key_dictionary = {pygame.K_1: 1, pygame.K_2: 2, pygame.K_3: 3, pygame.K_4: 4,
                                           pygame.K_5: 5, pygame.K_6: 6, pygame.K_7: 7, pygame.K_8: 8,
@@ -282,9 +302,22 @@ class Game(surface.Surface, Painter):
 
             self.draw()
             self.check_is_solved()
-            self.game_time = round(time.time() - self.start_time + self.penalty_time)
+            if not self.end:
+                self.game_time = round(time.time() - self.start_time + self.penalty_time)
+            else:
+                self.end_game()
 
             pygame.display.update()
+
+
+class LoadedGame(Game):
+    def __init__(self, hints, cells_list, unsolved_table, solved_table, saved_game_time):
+        super().__init__()
+        self.hints = hints
+        self.cells_list = cells_list
+        self.tables.unsolved = unsolved_table
+        self.tables.solved = solved_table
+        self.start_time = time.time() - saved_game_time
 
 
 class Cursor(Painter):
@@ -296,7 +329,18 @@ class Cursor(Painter):
         pygame.draw.lines(self.surf, c.red, True, self.line_list)
 
 
-class Tables:
+class SingletonMeta(type):
+
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class Tables(metaclass=SingletonMeta):
     def __init__(self):
         self.level = self.set_level()
         self.solved = self.solved_table()
@@ -311,7 +355,14 @@ class Tables:
 
     @staticmethod
     def set_level():
-        return 1
+        path = "settings.txt"
+        if os.path.isfile(path):
+            file = open(path, "r")
+            file_list = [line.strip() for line in file.readlines()]
+            level = int(file_list[1])
+        else:
+            level = 1
+        return level
 
     def solved_table(self):
         finish = False
