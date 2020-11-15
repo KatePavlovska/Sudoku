@@ -249,13 +249,12 @@ class Game(surface.Surface, Painter):
 
     def save_game(self):
         path = "game_save.txt"
-        file = open(path, "wb")
-        pickle.dump(self.hints, file)
-        pickle.dump(self.cells_list, file)
-        pickle.dump(self.tables.unsolved, file)
-        pickle.dump(self.tables.solved, file)
-        pickle.dump(self.game_time, file)
-        file.close()
+        with open(path, "wb") as file:
+            pickle.dump(self.hints, file)
+            pickle.dump(self.cells_list, file)
+            pickle.dump(self.tables.unsolved, file)
+            pickle.dump(self.tables.solved, file)
+            pickle.dump(self.game_time, file)
 
     @staticmethod
     def exit_game():

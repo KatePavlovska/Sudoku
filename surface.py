@@ -25,19 +25,19 @@ class Surface:
         color = None
         path = "settings.txt"
         if os.path.isfile(path):
-            file = open(path, "r")
-            file_list = [line.strip() for line in file.readlines()]
-            design = file_list[2]
-            if design == "black":
-                color = c.black
-            if design == "dark blue":
-                color = c.dark_blue
-            if design == "dark green":
-                color = c.dark_green
-            if design == "dark red":
-                color = c.dark_red
-            if design == "dark gray":
-                color = c.dark_gray
+            with open(path, "r") as file:
+                file_list = [line.strip() for line in file.readlines()]
+                design = file_list[2]
+                if design == "black":
+                    color = c.black
+                if design == "dark blue":
+                    color = c.dark_blue
+                if design == "dark green":
+                    color = c.dark_green
+                if design == "dark red":
+                    color = c.dark_red
+                if design == "dark gray":
+                    color = c.dark_gray
         else:
             color = c.black
         return color

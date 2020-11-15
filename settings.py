@@ -48,16 +48,16 @@ class Settings(surface.Surface):
         # set which buttons will be selected
         path = "settings.txt"
         if os.path.isfile(path):
-            file = open(path, "r")
-            file_list = [line.strip() for line in file.readlines()]
-            level = int(file_list[1])
-            design = file_list[2]
-            for button in level_buttons_list:
-                if level == button.file_property:
-                    button.selected = True
-            for button in design_buttons_list:
-                if design == button.file_property:
-                    button.selected = True
+            with open(path, "r") as file:
+                file_list = [line.strip() for line in file.readlines()]
+                level = int(file_list[1])
+                design = file_list[2]
+                for button in level_buttons_list:
+                    if level == button.file_property:
+                        button.selected = True
+                for button in design_buttons_list:
+                    if design == button.file_property:
+                        button.selected = True
         else:
             easy_button.selected = True
             black_button.selected = True
@@ -107,20 +107,18 @@ class Settings(surface.Surface):
 
     def confirm_settings(self):
         path = "settings.txt"
-        file = open(path, "w")
+        with open(path, "w") as file:
+            if self.username:
+                file.write(f"{self.username.text}\n")
+            else:
+                file.write("User1\n")
+            for level_button in self.level_buttons_list:
+                if level_button.selected:
+                    file.write(f"{level_button.file_property}\n")
 
-        if self.username:
-            file.write(f"{self.username.text}\n")
-        else:
-            file.write("User1\n")
-        for level_button in self.level_buttons_list:
-            if level_button.selected:
-                file.write(f"{level_button.file_property}\n")
-
-        for design_button in self.design_buttons_list:
-            if design_button.selected:
-                file.write(f"{design_button.file_property}\n")
-        file.close()
+            for design_button in self.design_buttons_list:
+                if design_button.selected:
+                    file.write(f"{design_button.file_property}\n")
 
     def reset_settings(self):
         self.username.text = "User1"
